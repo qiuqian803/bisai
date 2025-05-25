@@ -1,0 +1,1814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>课堂互动班级管理系统</title>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <!-- 引入学生数据管理脚本 -->
+    <script src="studentData.js"></script>
+    <style>
+
+        /* 添加新样式 */
+    .send-to-gacha-btn {
+        background: linear-gradient(145deg, #13c2c2, #08979c);
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 10px;
+        font-size: 14px;
+        transition: all 0.3s;
+    }
+    
+    .send-to-gacha-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 10px rgba(8, 151, 156, 0.3);
+    }
+        /* 通知样式 */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: -300px;
+            width: 280px;
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            z-index: 1000;
+            transition: right 0.3s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .notification.show {
+            right: 20px;
+        }
+        .notification.success {
+            background: #52c41a;
+        }
+        .notification.error {
+            background: #f5222d;
+        }
+        .notification.info {
+            background: #1890ff;
+        }
+
+        /* 点名提示样式 */
+        .selected-student {
+            background: #1890ff;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+            font-size: 18px;
+            box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+            transition: all 0.3s;
+        }
+        
+        .selected-student.highlight {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(24, 144, 255, 0.5);
+        }
+
+        /* 错题选项样式 */
+        .wrong-options {
+            margin-top: 15px;
+            padding: 10px;
+            background: #fff5f7;
+            border-radius: 10px;
+        }
+        .wrong-option {
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 8px;
+            position: relative;
+            transition: all 0.3s;
+        }
+        .correct-mark {
+            background: #77dd77;
+            color: white;
+        }
+        .wrong-mark {
+            background: #ff6961;
+            color: white;
+        }
+        .option-mark {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            text-align: center;
+            margin-right: 10px;
+        }
+
+        /* 基础样式 */
+        body {
+            margin: 0;
+            padding: 0;
+            background: #ffe6f4;
+            font-family: 'Comic Sans MS', cursive;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quiz-title {
+            color: #ff69b4;
+            font-family: 'Ma Shan Zheng', cursive;
+            font-size: 3.5em; 
+            text-align: center;
+            margin: 0 0 20px 0;   
+            text-shadow: 2px 2px #fff;
+            animation: titleBounce 1s infinite alternate;
+            font-weight: bold; 
+        }
+
+        @media (max-width: 600px) {
+            .quiz-title {
+                font-size: 2.8em;
+                margin: 20px 0;
+            }
+        }
+
+        @keyframes titleBounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-5px); }
+        }
+
+        /* 界面容器 */
+        .screen {
+            display: none;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* 开始界面 */
+        #startScreen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 80vh;
+            text-align: center;
+        }
+
+        /* 标题样式 */
+        .title {
+            color: #ff69b4;
+            font-size: 3.5em;
+            text-shadow: 2px 2px #fff;
+            margin-bottom: 40px;
+            line-height: 1.2;
+        }
+
+        /* 按钮容器 */
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        /* 3D按钮样式 */
+        .bubble-btn {
+            position: relative;
+            padding: 18px 40px;
+            background: linear-gradient(145deg, #ff88bb, #ff5599);
+            border: none;
+            border-radius: 35px;
+            color: white;
+            font-size: 1.6em;
+            cursor: pointer;
+            box-shadow: 0 15px 25px -5px rgba(255,85,153,0.4);
+            transition: all 0.3s;
+        }
+
+        .bubble-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 25px 35px -5px rgba(255,85,153,0.5);
+        }
+
+        /* 进度条样式 */
+        .progress-container {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+            gap: 15px;
+        }
+        .progress-text {
+            color: #ff69b4;
+            font-size: 1.2em;
+            white-space: nowrap;
+        }
+        .progress-bar {
+            height: 15px;
+            background: #ffe0ed;
+            border-radius: 10px;
+            overflow: hidden;
+            flex-grow: 1;
+        }
+        .progress {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff88bb, #ff5599);
+            transition: width 0.5s;
+        }
+
+        /* 题目样式 */
+        .question {
+            font-size: 1.8em;
+            color: #ff69b4;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        /* 选项样式 */
+        .option {
+            display: block;
+            margin: 15px;
+            padding: 20px;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .correct-answer {
+            background: #77dd77;
+            color: white;
+        }
+        .wrong-answer {
+            background: #ff6961;
+            color: white;
+        }
+
+        /* 解析区域样式 */
+        .explanation-box {
+            margin: 15px;
+            padding: 20px;
+            background: #fff8f8;
+            border-radius: 15px;
+            border-left: 5px solid #ff6961;
+            display: none;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .explanation-title {
+            color: #ff6961;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .explanation-content {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 反馈提示 */
+        .answer-tip {
+            text-align: center;
+            color: #ff4444;
+            margin: 15px 0;
+            font-size: 1.2em;
+        }
+
+        /* 按钮位置 */
+        #backBtn {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            display: none;
+        }
+        #nextBtn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: none;
+        }
+
+        /* 结算界面 */
+        .score-text {
+            font-family: 'Ma Shan Zheng', cursive;
+            color: #ff0000;
+            font-size: 5em;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .score-line {
+            border-bottom: 4px solid #ff0000;
+            width: 200px;
+            margin: 0 auto 30px;
+        }
+        .score-emoji {
+            font-size: 2.5em;
+            color: #ff69b4;
+            text-align: center;
+            margin: 20px 0;
+            font-family: 'Ma Shan Zheng', cursive;
+            text-shadow: 1px 1px #fff;
+        }
+
+        /* 错题界面 */
+        #wrongScreen {
+            padding: 20px;
+        }
+        .wrong-list {
+            max-height: 60vh;
+            overflow-y: auto;
+            margin: 20px 0;
+            padding: 10px;
+            border: 2px solid #ff88bb;
+            border-radius: 15px;
+        }
+        .wrong-item {
+            margin: 15px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 15px;
+        }
+
+        /* 点名系统样式 */
+        .random-student-display {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px 40px;
+            border-radius: 10px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+            z-index: 100;
+            text-align: center;
+            font-size: 24px;
+            color: #1890ff;
+            transition: all 0.3s;
+        }
+        
+        .random-student-display.highlight {
+            transform: translate(-50%, -50%) scale(1.1);
+            box-shadow: 0 8px 30px rgba(24,144,255,0.3);
+        }
+
+        /* 班级管理系统特有样式 */
+        .container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar {
+            width: 20%;
+            min-width: 200px;
+            padding: 20px;
+            border-right: 2px solid #ff69b4;
+            background: rgba(255, 230, 244, 0.9);
+            overflow-y: auto;
+        }
+
+        .main-content {
+            width: 80%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-section {
+            height: 50%;
+            text-align: center;
+            padding: 30px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .groups-container {
+            height: 50%;
+            padding: 20px 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            overflow-y: auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .random-btn {
+            padding: 15px 40px;
+            background: linear-gradient(145deg, #ff88bb, #ff5599);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            animation: breathe 2s infinite;
+            box-shadow: 0 0 15px #ff5599;
+            transition: all 0.3s;
+            margin: 20px 0;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .group {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(255, 85, 153, 0.3);
+            transition: transform 0.3s;
+        }
+
+        .group:hover {
+            transform: translateY(-5px);
+        }
+
+        .member {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            transition: background 0.3s;
+        }
+
+        .member:hover {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .leader { color: #ffd666; }
+        .sub-leader { color: #69c0ff; }
+
+        .rank-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            transition: transform 0.3s;
+        }
+
+        .rank-item:hover {
+            transform: translateX(10px);
+        }
+
+        .export-btn {
+            width: 100%;
+            padding: 12px;
+            background: #13c2c2;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            margin-top: 20px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .export-btn:hover {
+            background: #08979c;
+        }
+
+        .score-controls {
+            display: inline-flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .score-controls button {
+            padding: 2px 8px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            background: #ff5599;
+            color: white;
+            position: relative;
+            transition: all 0.2s;
+        }
+        
+        .score-controls button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(255,85,153,0.4);
+        }
+        
+        .score-controls button:active {
+            transform: translateY(0);
+        }
+        
+        .confirm-btn {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #52c41a;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 5px;
+            font-size: 0.8em;
+            cursor: pointer;
+            animation: popIn 0.3s forwards;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .score-value {
+            transition: all 0.3s;
+        }
+        
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            70% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes scoreUpdate {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); color: #ff3366; }
+            100% { transform: scale(1); }
+        }
+
+        /* 点名系统样式 */
+        #randomControls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 20px;
+            border-radius: 30px;
+            box-shadow: 0 5px 15px rgba(255, 85, 153, 0.3);
+            z-index: 100;
+        }
+
+        .roll-container {
+            height: 50px;
+            overflow: hidden;
+            position: relative;
+            margin: 20px 0;
+        }
+
+        .roll-name {
+            height: 50px;
+            line-height: 50px;
+            font-size: 32px;
+            color: #ff5599;
+            text-align: center;
+            animation: rollDown 0.2s forwards;
+        }
+
+        @keyframes rollDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .final-name {
+            font-size: 48px;
+            color: #ff3366;
+            text-shadow: 2px 2px 4px rgba(255, 85, 153, 0.3);
+            text-align: center;
+            opacity: 0;
+           
+        }
+
+        @keyframes nameAppear {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        /* 扭蛋动画优化 */
+        .gacha-animation {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 120px;
+            z-index: 200;
+            perspective: 1000px;
+        }
+        
+        /* 中央得分提示动画 */
+        .score-popup {
+            position: fixed;
+            top: 40%;
+            right: 0%;
+            transform: translate(-50%, -50%);
+            font-size: 10em;
+            font-weight: bold;
+            font-family: 'Ma Shan Zheng', cursive;
+            opacity: 0;
+            z-index: 1000;
+            text-shadow: 0 0 10px rgba(0,0,0,0.3);
+            pointer-events: none;
+        }
+        
+        .score-popup.positive {
+            color: #1ac41a;
+            animation: scorePopupPositive 1.2s ease-out forwards;
+        }
+        
+        .score-popup.negative {
+            color: #f5222d;
+            animation: scorePopupNegative 1.2s ease-out forwards;
+        }
+        
+        @keyframes scorePopupPositive {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            80% { opacity: 1; transform: translate(-50%, -40%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -30%) scale(0.8); }
+        }
+        
+        @keyframes scorePopupNegative {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            80% { opacity: 1; transform: translate(-50%, -60%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -70%) scale(0.8); }
+        }
+        
+        /* 烟花动画效果 */
+        .firework-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+            overflow: hidden;
+        }
+        
+        .firework {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            box-shadow: 0 0 10px 2px;
+            animation: firework-explode 1s ease-out forwards;
+        }
+        
+        @keyframes firework-explode {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--x), var(--y)) scale(0); opacity: 0; }
+        }
+        
+        /* 庆祝动画效果 */
+        .celebration-container {
+            position: fixed;
+            top: -80px;
+            left: -150px;
+            
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .celebration-text {
+            font-size: 4em;
+            font-weight: bold;
+            font-family: 'Ma Shan Zheng', cursive;
+            color: #ff5599;
+            text-shadow: 0 0 15px rgba(255,85,153,0.5);
+            opacity: 0;
+            transform: scale(0.5);
+            animation: celebration-appear 1.5s ease-out forwards;
+        }
+        
+        @keyframes celebration-appear {
+            0% { opacity: 0; transform: scale(0.5) rotate(-10deg); }
+            20% { opacity: 1; transform: scale(1.2) rotate(5deg); }
+            40% { transform: scale(1) rotate(-3deg); }
+            60% { transform: scale(1.1) rotate(2deg); }
+            80% { transform: scale(1) rotate(0); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: var(--color);
+            opacity: 0.8;
+            animation: confetti-fall 5s ease-out forwards;
+        }
+        
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100vh) rotate(0deg); opacity: 0.8; }
+            10% { opacity: 0.8; }
+            70% { opacity: 0.8; transform: translateY(80vh) rotate(540deg); }
+            85% { opacity: 0.6; transform: translateY(100vh) rotate(630deg); }
+            100% { transform: translateY(130vh) rotate(720deg); opacity: 0; }
+        }
+        
+        /* 成长轨迹图表容器 */
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 4px 12px rgba(255,85,153,0.15);
+        }
+
+        /* 增值分析弹窗 */
+        .analysis-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            width: 80%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 2000;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 成长指标 */
+        .growth-metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 10px;
+        }
+
+        /* 时间轴样式 */
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .timeline-item {
+            position: relative;
+            padding-left: 30px;
+            margin: 15px 0;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            background: #ff88bb;
+            border-radius: 50%;
+        }
+    
+
+    </style>
+</head>
+<body>
+
+    <!-- 音频元素 -->
+    <!-- 按钮音效 - 使用免费音效库 -->
+    <audio id="btnSound" src="https://assets.mixkit.co/sfx/preview/mixkit-modern-click-box-check-1120.mp3" preload="auto" style="display:none"></audio>
+    <!-- 点名音效 -->
+    <audio id="rollSound" src="dianming.mp3" preload="auto" style="display:none"></audio>
+    <audio id="rollEndSound" src="gacha.mp3" preload="auto" style="display:none"></audio>
+    <!-- 正确音效 -->
+    <audio id="correctSound" src="mixkit-correct-answer-tone-2870.mp3" preload="auto" style="display:none"></audio>
+    <!-- 错误音效 -->
+    <audio id="wrongSound" src="mixkit-wrong-answer-fail-notification-946.mp3" preload="auto" style="display:none"></audio>
+    <!-- 扭蛋开花音效 -->
+    <!-- 移除了扭蛋音效 -->
+    <!-- 点名音效 -->
+    <audio id="rollSound" src="https://assets.mixkit.co/sfx/preview/mixkit-slot-machine-random-wheel-1930.mp3" preload="auto" style="display:none"></audio>
+    <!-- 点名结束音效 -->
+    <audio id="rollEndSound" src="mixkit-achievement-bell-600.mp3" preload="auto" style="display:none"></audio>
+
+    <!-- 中央得分提示元素 -->
+    <div id="scorePopup" class="score-popup"></div>
+    
+    <!-- 烟花动画容器 -->
+    <div id="fireworkContainer" class="firework-container"></div>
+    
+    <!-- 庆祝动画容器 -->
+    <div id="celebrationContainer" class="celebration-container"></div>
+    
+    <!-- 分析模态框 -->
+    <div id="analysisModal" class="analysis-modal" style="display:none;">
+        <h2>学生成长分析</h2>
+        <div id="growthChart" class="chart-container"></div>
+        <div id="growthMetrics"></div>
+        <div class="timeline" id="growthTimeline"></div>
+        <button onclick="closeAnalysis()" class="bubble-btn" style="margin-top: 20px; position: sticky; bottom: 10px; align-self: center;">关闭分析</button>
+    </div>
+    
+    <div class="container">
+        <div class="sidebar">
+            <h3>实时排名</h3>
+            <h4>小组排名</h4>
+            <div id="groupRank"></div>
+            <h4>个人排名</h4>
+            <div id="personalRank"></div>
+            <button class="export-btn" onclick="exportData()">导出全班数据</button>
+        </div>
+
+        <div class="main-content">
+            <div class="top-section">
+                <h1 class="quiz-title">课堂互动班级管理系统</h1>
+<button class="export-btn" onclick="goToGachaSystem()" style="margin-top: 10px; background: #722ed1;">
+   扭蛋大作战平台
+</button><br>
+                <div style="margin-bottom: 15px; background: rgba(255, 255, 255, 0.8); padding: 10px 15px; border-radius: 15px; box-shadow: 0 4px 8px rgba(255, 85, 153, 0.2); display: inline-flex; align-items: center;">
+                    <label style="margin-right: 10px; display: inline-flex; align-items: center; color: #ff5599; font-weight: bold;">
+                        <input type="checkbox" id="autoStopCheckbox" checked style="margin-right: 5px; accent-color: #ff5599;"> 自动停止
+                    </label>
+                    <select id="autoStopTime" style="padding: 5px 10px; border-radius: 10px; border: 2px solid #ff88bb; background: white; color: #ff5599; font-weight: bold; cursor: pointer;">
+                        <option value="2">2秒</option>
+                        <option value="3" selected>3秒</option>
+                        <option value="5">5秒</option>
+                        <option value="8">8秒</option>
+                        <option value="10">10秒</option>
+                    </select>
+                    <span id="countdownDisplay" style="margin-left: 10px; font-weight: bold; color: #ff5599; display: none;"></span>
+                </div>
+                <button class="random-btn" onclick="startRandom()">随机抽选</button>
+                <div id="randomName" style="font-size: 36px; margin: left 0;" ></div>
+                <div id="randomControls" class="score-controls"></div>
+            </div>
+            <div class="groups-container" id="groupsContainer"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // 初始化学生数据
+        let students = JSON.parse(localStorage.getItem('students')) || 
+            [
+                // 第1组
+                {id: 1, name: '李梓萱', group: 1, role: '组长', score: 0},
+                {id: 2, name: '张雨晨', group: 1, role: '副组长', score: 0},
+                {id: 3, name: '王浩宇', group: 1, role: '组员', score: 0},
+                {id: 4, name: '刘芸熙', group: 1, role: '组员', score: 0},
+                {id: 5, name: '陈思远', group: 1, role: '组员', score: 0},
+                {id: 6, name: '赵子轩', group: 1, role: '组员', score: 0},
+                // 第2组
+                {id: 7, name: '杨雨涵', group: 2, role: '组长', score: 0},
+                {id: 8, name: '周子涵', group: 2, role: '副组长', score: 0},
+                {id: 9, name: '吴梓萌', group: 2, role: '组员', score: 0},
+                {id: 10, name: '郑宇轩', group: 2, role: '组员', score: 0},
+                {id: 11, name: '孙嘉怡', group: 2, role: '组员', score: 0},
+                {id: 12, name: '钱梓涵', group: 2, role: '组员', score: 0},
+                // 第3组
+                {id: 13, name: '朱雨桐', group: 3, role: '组长', score: 0},
+                {id: 14, name: '胡梓轩', group: 3, role: '副组长', score: 0},
+                {id: 15, name: '林子墨', group: 3, role: '组员', score: 0},
+                {id: 16, name: '何梓萱', group: 3, role: '组员', score: 0},
+                {id: 17, name: '高子涵', group: 3, role: '组员', score: 0},
+                {id: 18, name: '徐雨晨', group: 3, role: '组员', score: 0},
+                // 第4组
+                {id: 19, name: '马思远', group: 4, role: '组长', score: 0},
+                {id: 20, name: '谢雨欣', group: 4, role: '副组长', score: 0},
+                {id: 21, name: '宋子轩', group: 4, role: '组员', score: 0},
+                {id: 22, name: '韩梓涵', group: 4, role: '组员', score: 0},
+                {id: 23, name: '冯雨桐', group: 4, role: '组员', score: 0},
+                {id: 24, name: '蒋子墨', group: 4, role: '组员', score: 0},
+                // 第5组
+                {id: 25, name: '秦梓萱', group: 5, role: '组长', score: 0},
+                {id: 26, name: '董思远', group: 5, role: '副组长', score: 0},
+                {id: 27, name: '叶子涵', group: 5, role: '组员', score: 0},
+                {id: 28, name: '魏雨晨', group: 5, role: '组员', score: 0},
+                {id: 29, name: '潘梓轩', group: 5, role: '组员', score: 0},
+                {id: 30, name: '夏雨涵', group: 5, role: '组员', score: 0},
+                // 第6组
+                {id: 31, name: '唐子墨', group: 6, role: '组长', score: 0},
+                {id: 32, name: '萧梓萱', group: 6, role: '副组长', score: 0},
+                {id: 33, name: '姜思远', group: 6, role: '组员', score: 0},
+                {id: 34, name: '戴雨桐', group: 6, role: '组员', score: 0},
+                {id: 35, name: '傅子轩', group: 6, role: '组员', score: 0},
+                {id: 36, name: '方梓涵', group: 6, role: '组员', score: 0},
+                // 第7组
+                {id: 37, name: '崔雨晨', group: 7, role: '组长', score: 0},
+                {id: 38, name: '邓思远', group: 7, role: '副组长', score: 0},
+                {id: 39, name: '曹子涵', group: 7, role: '组员', score: 0},
+                {id: 40, name: '彭梓萱', group: 7, role: '组员', score: 0},
+                {id: 41, name: '江雨桐', group: 7, role: '组员', score: 0},
+                {id: 42, name: '石子轩', group: 7, role: '组员', score: 0}
+            ];
+            
+        // 清除本地存储中的学生数据，确保使用最新的中文姓名
+        localStorage.removeItem('students');
+
+        // 初始化界面
+        function initGroups() {
+            let container = document.getElementById('groupsContainer');
+            container.innerHTML = '';
+            
+            // 生成7种不同的组颜色
+            const groupColors = Array.from({length:7}, (_,i) => 
+                `hsl(${(i * 51.4)}, 70%, 60%)`); // 51.4 ≈ 360/7
+            
+            for(let group=1; group<=7; group++){
+                let groupDiv = document.createElement('div');
+                groupDiv.className = 'group';
+                groupDiv.style.border = `2px solid ${groupColors[group-1]}`;
+                groupDiv.innerHTML = `<h3 style="color: ${groupColors[group-1]}">第${group}组</h3>`;
+                
+                students.filter(s => s.group === group).forEach(member => {
+                    let memberDiv = document.createElement('div');
+                    memberDiv.className = 'member';
+                    memberDiv.innerHTML = `
+                        <span class="${member.role === '组长' ? 'leader' : 
+                                    member.role === '副组长' ? 'sub-leader' : ''}">
+                            ${member.role === '组长' ? '👑' : 
+                            member.role === '副组长' ? '⭐' : ''}${member.name}
+                        </span>
+                        <div class="score-controls">
+                            <button onclick="changeScore(${member.id}, -1, this)">-1</button>
+                            <span class="score-value" style="min-width: 30px; display: inline-block;">${member.score}</span>
+                            <button onclick="changeScore(${member.id}, 1, this)">+1</button>
+                            <button onclick="showGrowthAnalysis(${member.id})" 
+                                style="margin-left:10px;padding:2px 8px;">
+                                📈
+                            </button>
+                        </div>
+                    `;
+                    groupDiv.appendChild(memberDiv);
+                });
+                container.appendChild(groupDiv);
+            }
+        }
+
+        // 在students数据结构中增加历史记录
+        students = students.map(s => ({
+            ...s,
+            history: s.history || [{ date: new Date().toISOString(), score: s.score || 0 }],
+            baseline: s.baseline || 0
+        }));
+
+        // 分数修改 - 显示确认按钮
+        function changeScore(id, delta, button) {
+            const btnSound = document.getElementById('btnSound');
+            btnSound.currentTime = 0; // 重置播放进度
+            btnSound.play(); // 播放音效
+            
+            // 移除所有已有的确认按钮
+            document.querySelectorAll('.confirm-btn').forEach(btn => btn.remove());
+            
+            // 创建确认按钮
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = 'confirm-btn';
+            confirmBtn.textContent = '确认';
+            confirmBtn.onclick = (e) => {
+                e.stopPropagation(); // 阻止事件冒泡
+                
+                // 找到对应学生
+                const student = students.find(s => s.id === id);
+                if (student) {
+                    // 记录历史数据
+                    student.history.push({
+                        date: new Date().toISOString(),
+                        scoreChange: delta,
+                        newScore: Math.max(-10, student.score + delta) // 移除上限限制，只保留下限-10分
+                    });
+                }
+                
+                confirmScore(id, delta);
+                confirmBtn.remove();
+            };
+            
+            // 如果传入了按钮元素，将确认按钮添加到该按钮上
+            if (button) {
+                button.appendChild(confirmBtn);
+            } else {
+                // 否则查找对应学生的按钮
+                const studentControls = Array.from(document.querySelectorAll('.member')).find(el => {
+                    return el.querySelector('.score-controls').innerHTML.includes(`changeScore(${id},`);
+                });
+                if (studentControls) {
+                    const targetBtn = studentControls.querySelector(delta > 0 ? 'button:last-child' : 'button:first-child');
+                    targetBtn.appendChild(confirmBtn);
+                }
+            }
+            
+            // 3秒后自动移除确认按钮
+            setTimeout(() => confirmBtn.remove(), 3000);
+        }
+        
+        // 确认分数修改并实时更新
+        function confirmScore(id, delta) {
+            const btnSound = document.getElementById('btnSound');
+            btnSound.currentTime = 0;
+            btnSound.play();
+            document.getElementById('btnSound').play(); // 按钮音效
+            let student = students.find(s => s.id === id);
+            student.score = Math.max(-10, student.score + delta); // 移除上限限制，只保留下限-10分
+            localStorage.setItem('students', JSON.stringify(students));
+            
+            // 显示中央得分提示动画
+            showScorePopup(delta);
+            
+            // 根据分数变化显示不同的动画效果
+            if (delta >= 5) {
+                showCelebrationAnimation(`${student.name} 加了 ${delta} 分！`);
+            } else if (delta > 0) {
+                showFireworkAnimation();
+            }
+            
+            // 实时更新UI而不刷新页面
+            updateScoreDisplay(id, student.score);
+            updateRankings();
+            
+
+        }
+
+        // 更新界面
+        function updateUI() {
+            // 更新分组显示
+            students.forEach(student => {
+                updateScoreDisplay(student.id, student.score);
+            });
+            
+            // 更新排名
+            updateRankings();
+        }
+        
+        // 更新单个学生的分数显示
+        function updateScoreDisplay(id, score) {
+            // 查找该学生的分数显示元素
+            const memberElements = document.querySelectorAll('.member');
+            for (let el of memberElements) {
+                if (el.innerHTML.includes(`changeScore(${id},`)) {
+                    const scoreSpan = el.querySelector('.score-controls span');
+                    // 添加动画效果
+                    scoreSpan.textContent = score;
+                    scoreSpan.classList.add('score-value');
+                    scoreSpan.style.animation = 'scoreUpdate 0.5s';
+                    setTimeout(() => {
+                        scoreSpan.style.animation = '';
+                    }, 500);
+                    break;
+                }
+            }
+        }
+
+        // 随机抽选功能 - 优化版
+        let intervalId;
+        let currentStudent = null;
+        let rollCount = 0;
+        let rollSpeed = 100; // 初始滚动速度
+        let maxRolls = 30; // 最大滚动次数
+        let isRolling = false; // 添加滚动状态标记
+        let autoStopEnabled = true; // 是否启用自动停止
+        let autoStopTime = 3; // 自动停止时间（秒）
+        let autoStopTimerId = null; // 自动停止计时器ID
+        
+        // 页面加载完成后初始化自动停止设置
+        window.addEventListener('DOMContentLoaded', () => {
+            // 获取自动停止复选框和时间选择器
+            const autoStopCheckbox = document.getElementById('autoStopCheckbox');
+            const autoStopTimeSelect = document.getElementById('autoStopTime');
+            
+            // 设置初始状态
+            autoStopCheckbox.checked = autoStopEnabled;
+            autoStopTimeSelect.value = autoStopTime.toString();
+            
+            // 添加事件监听器
+            autoStopCheckbox.addEventListener('change', () => {
+                autoStopEnabled = autoStopCheckbox.checked;
+            });
+            
+            autoStopTimeSelect.addEventListener('change', () => {
+                autoStopTime = parseInt(autoStopTimeSelect.value);
+            });
+        });
+        
+        function startRandom() {
+            // 如果已经在滚动中，则停止滚动
+            if (isRolling) {
+                stopRandom();
+                return;
+            }
+            
+            // 更新自动停止设置
+            autoStopEnabled = document.getElementById('autoStopCheckbox').checked;
+            autoStopTime = parseInt(document.getElementById('autoStopTime').value);
+            
+            isRolling = true;
+            const rollSound = document.getElementById('rollSound');
+            rollSound.loop = true; // 设置音效循环播放
+            rollSound.play(); // 点名滚动音效
+            const btn = document.querySelector('.random-btn');
+            btn.textContent = '停止抽选'; // 更改按钮文字
+            const randomNameEl = document.getElementById('randomName');
+            clearInterval(intervalId);
+            rollCount = 0;
+            
+            // 添加点名动画容器
+            randomNameEl.innerHTML = '<div class="roll-container"></div>';
+            const rollContainer = randomNameEl.querySelector('.roll-container');
+            
+            // 创建初始名单显示
+            for (let i = 0; i < 5; i++) {
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'roll-name';
+                nameDiv.textContent = students[Math.floor(Math.random()*students.length)].name;
+                rollContainer.appendChild(nameDiv);
+            }
+            
+            // 开始滚动动画
+            intervalId = setInterval(() => {
+                rollCount++;
+                
+                // 逐渐减慢速度
+                if (rollCount > maxRolls * 0.6) {
+                    rollSpeed = 100 + Math.floor((rollCount - maxRolls * 0.6) * 15);
+                    clearInterval(intervalId);
+                    intervalId = setInterval(rollNames, rollSpeed);
+                }
+                
+                rollNames();
+                
+                // 结束滚动
+                if (rollCount >= maxRolls) {
+                    stopRandom();
+                }
+            }, rollSpeed);
+            
+            // 设置自动停止计时器
+            if (autoStopEnabled) {
+                // 清除之前的计时器（如果有）
+                if (autoStopTimerId) {
+                    clearTimeout(autoStopTimerId);
+                }
+                
+                // 显示倒计时提示
+                showNotification(`将在 ${autoStopTime} 秒后自动停止抽选`, 'info');
+                
+                // 显示倒计时
+                const countdownDisplay = document.getElementById('countdownDisplay');
+                countdownDisplay.style.display = 'inline';
+                let remainingTime = autoStopTime;
+                countdownDisplay.textContent = `倒计时: ${remainingTime}秒`;
+                
+                // 每秒更新倒计时显示
+                const countdownInterval = setInterval(() => {
+                    remainingTime--;
+                    if (remainingTime > 0) {
+                        countdownDisplay.textContent = `倒计时: ${remainingTime}秒`;
+                    } else {
+                        clearInterval(countdownInterval);
+                    }
+                }, 1000);
+                
+                // 设置新的计时器
+                autoStopTimerId = setTimeout(() => {
+                    if (isRolling) {
+                        stopRandom();
+                        showNotification('已自动停止抽选', 'success');
+                        clearInterval(countdownInterval);
+                        countdownDisplay.style.display = 'none';
+                    }
+                }, autoStopTime * 1000);
+            }
+        }
+        
+        // 添加停止随机抽取的函数
+        function stopRandom() {
+            if (!isRolling) return;
+            
+            isRolling = false;
+            clearInterval(intervalId);
+            const rollSound = document.getElementById('rollSound');
+            rollSound.loop = false; // 关闭循环播放
+            rollSound.pause(); // 停止点名音效
+            rollSound.currentTime = 0; // 重置音频播放位置
+            document.getElementById('rollEndSound').play(); // 点名结束音效
+            
+            // 清除自动停止计时器和倒计时显示
+            if (autoStopTimerId) {
+                clearTimeout(autoStopTimerId);
+                autoStopTimerId = null;
+            }
+            
+            // 隐藏倒计时显示
+            const countdownDisplay = document.getElementById('countdownDisplay');
+            if (countdownDisplay) {
+                countdownDisplay.style.display = 'none';
+            }
+            
+            // 选择最终学生
+            currentStudent = students[Math.floor(Math.random()*students.length)];
+            
+            // 显示最终结果
+            const randomNameEl = document.getElementById('randomName');
+            randomNameEl.innerHTML = `<div class="final-name">${currentStudent.name}</div>`;
+            const finalName = randomNameEl.querySelector('.final-name');
+            finalName.style.animation = 'nameAppear 0.5s forwards';
+            
+            // 显示庆祝动画
+            showCelebrationAnimation(`${currentStudent.name} 被选中了！`);
+            
+            // 恢复按钮状态
+            const btn = document.querySelector('.random-btn');
+            btn.textContent = '随机抽选';
+            btn.disabled = false;
+            
+            showScoreControls(currentStudent);
+            
+            // 保存当前选中的学生，以便跳转到扭蛋系统时使用
+            if (typeof StudentData !== 'undefined') {
+                StudentData.saveStudent(currentStudent);
+            } else {
+                // 如果StudentData未定义，则直接使用localStorage保存
+                localStorage.setItem('selectedStudent', JSON.stringify(currentStudent));
+            }
+        }
+    
+    // 添加跳转到扭蛋系统的函数
+    function goToGachaSystem() {
+        const btnSound = document.getElementById('btnSound');
+            btnSound.currentTime = 0;
+            btnSound.play();
+            
+            // 如果当前有选中的学生，保存到本地存储
+            if (currentStudent && typeof StudentData !== 'undefined') {
+                StudentData.saveStudent(currentStudent);
+                showNotification(`将 ${currentStudent.name} 带到扭蛋大作战系统`, 'success');
+            } else if (currentStudent) {
+                // 如果StudentData未定义，则直接使用localStorage保存
+                localStorage.setItem('selectedStudent', JSON.stringify(currentStudent));
+                showNotification(`将 ${currentStudent.name} 带到扭蛋大作战系统`, 'success');
+            } else {
+                showNotification('请先随机抽选一名学生', 'info');
+                return;
+            }
+            
+            // 跳转到扭蛋系统
+            window.open('扭蛋大作战v2.1.2.html', '_blank');
+     }
+        
+        // 名字滚动效果
+        function rollNames() {
+            const rollContainer = document.querySelector('.roll-container');
+            if (!rollContainer) return;
+            
+            // 移除第一个名字
+            if (rollContainer.children.length > 0) {
+                rollContainer.removeChild(rollContainer.children[0]);
+            }
+            
+            // 添加新名字
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'roll-name';
+            nameDiv.textContent = students[Math.floor(Math.random()*students.length)].name;
+            rollContainer.appendChild(nameDiv);
+        }
+        
+
+        // 显示分数控制
+        function showScoreControls(student) {
+            const controls = document.getElementById('randomControls');
+            controls.style.display = 'flex';
+            controls.innerHTML = '';
+            
+            // 创建-5按钮
+            const btnMinus5 = document.createElement('button');
+            btnMinus5.textContent = '-5';
+            btnMinus5.onclick = function() { changeScore(student.id, -5, this); };
+            controls.appendChild(btnMinus5);
+            // 创建-4按钮
+            const btnMinus4 = document.createElement('button');
+            btnMinus4.textContent = '-4';
+            btnMinus4.onclick = function() { changeScore(student.id, -4, this); };
+            controls.appendChild(btnMinus4);
+            // 创建-3按钮
+            const btnMinus3 = document.createElement('button');
+            btnMinus3.textContent = '-3';
+            btnMinus3.onclick = function() { changeScore(student.id, -3, this); };
+            controls.appendChild(btnMinus3);
+             // 创建-2按钮
+            const btnMinus2 = document.createElement('button');
+            btnMinus2.textContent = '-2';
+            btnMinus2.onclick = function() { changeScore(student.id, -2, this); };
+            controls.appendChild(btnMinus2);
+            // 创建-1按钮
+            const btnMinus1 = document.createElement('button');
+            btnMinus1.textContent = '-1';
+            btnMinus1.onclick = function() { changeScore(student.id, -1, this); };
+            controls.appendChild(btnMinus1);
+            
+            // 创建学生名称
+            const nameSpan = document.createElement('span');
+            nameSpan.style.margin = '0 10px';
+            nameSpan.textContent = student.name;
+            controls.appendChild(nameSpan);
+            
+            // 创建+1按钮
+            const btnPlus1 = document.createElement('button');
+            btnPlus1.textContent = '+1';
+            btnPlus1.onclick = function() { changeScore(student.id, 1, this); };
+            controls.appendChild(btnPlus1);
+           // 创建+2按钮
+            const btnPlus2 = document.createElement('button');
+            btnPlus2.textContent = '+2';
+            btnPlus2.onclick = function() { changeScore(student.id, 2, this); };
+            controls.appendChild(btnPlus2);
+   // 创建+3按钮
+            const btnPlus3 = document.createElement('button');
+            btnPlus3.textContent = '+3';
+            btnPlus3.onclick = function() { changeScore(student.id, 3, this); };
+            controls.appendChild(btnPlus3);
+             // 创建+4按钮
+            const btnPlus4 = document.createElement('button');
+            btnPlus4.textContent = '+4';
+            btnPlus4.onclick = function() { changeScore(student.id, 4, this); };
+            controls.appendChild(btnPlus4);
+
+            // 创建+5按钮
+            const btnPlus5 = document.createElement('button');
+            btnPlus5.textContent = '+5';
+            btnPlus5.onclick = function() { changeScore(student.id, 5, this); };
+            controls.appendChild(btnPlus5);
+            
+            // 添加动画效果
+            controls.style.animation = 'fadeInUp 0.3s forwards';
+        }
+
+        // 排名计算
+        function updateRankings() {
+            // 计算小组排名
+            const groupScores = {};
+            students.forEach(s => {
+                groupScores[s.group] = (groupScores[s.group] || 0) + s.score;
+            });
+            
+            const sortedGroups = Object.entries(groupScores)
+                .sort((a, b) => b[1] - a[1])
+                .map(([group, score], index) => ({
+                    group: Number(group),
+                    score,
+                    rank: index + 1
+                }));
+
+            // 更新小组排名显示
+            const groupRankDiv = document.getElementById('groupRank');
+            groupRankDiv.innerHTML = '';
+            sortedGroups.forEach((g, i) => {
+                const div = document.createElement('div');
+                div.className = 'rank-item';
+                div.innerHTML = `
+                    ${i < 3 ? ['👑','⭐','🏆'][i] : ''}
+                    第${g.group}组 - 总分：${g.score}
+                    <span style="margin-left:auto; color:#69c0ff">
+                        ${g.rank}位
+                    </span>
+                `;
+                groupRankDiv.appendChild(div);
+            });
+
+            // 计算个人排名
+            const sortedStudents = [...students].sort((a, b) => b.score - a.score);
+            const personalRankDiv = document.getElementById('personalRank');
+            personalRankDiv.innerHTML = '';
+            sortedStudents.forEach((s, i) => {
+                const div = document.createElement('div');
+                div.className = 'rank-item';
+                div.innerHTML = `
+                    ${i < 3 ? ['👑','⭐','🏆'][i] : ''}
+                    ${s.name}（第${s.group}组）
+                    <span style="margin-left:auto; color:#${s.score >=0 ? '73d13d' : 'ff4d4f'}">
+                        ${s.score}分
+                    </span>
+                `;
+                personalRankDiv.appendChild(div);
+            });
+        }
+
+        // 导出Excel
+        function exportData() {
+            const btnSound = document.getElementById('btnSound');
+            btnSound.currentTime = 0;
+            btnSound.play();
+            const wsData = [
+                ['学号', '姓名', '组别', '角色', '分数'],
+                ...students.map(s => [s.id, s.name, s.group, s.role, s.score])
+            ];
+            
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "班级数据");
+            XLSX.writeFile(wb, "班级得分数据.xlsx");
+        }
+
+        // 导入Excel数据
+        function importData() {
+            const btnSound = document.getElementById('btnSound');
+            btnSound.currentTime = 0;
+            btnSound.play();
+            
+            // 创建文件输入元素
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.xlsx,.xls';
+            fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+            
+            // 监听文件选择
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        
+                        // 获取第一个工作表
+                        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                        
+                        if (jsonData.length > 0) {
+                            // 检查数据格式
+                            const firstRow = jsonData[0];
+                            if ('学号' in firstRow && '姓名' in firstRow && '组别' in firstRow) {
+                                // 转换数据格式
+                                students = jsonData.map(row => ({
+                                    id: Number(row['学号']),
+                                    name: row['姓名'],
+                                    group: Number(row['组别']),
+                                    role: row['角色'] || '组员',
+                                    score: Number(row['分数'] || 0) // 默认分数为100分
+                                }));
+                                
+                                // 保存到本地存储
+                                localStorage.setItem('students', JSON.stringify(students));
+                                
+                                // 更新界面
+                                initGroups();
+                                updateRankings();
+                                
+                                // 显示成功消息
+                                showNotification('导入成功！', 'success');
+                            } else {
+                                showNotification('数据格式不正确，请确保包含学号、姓名、组别字段', 'error');
+                            }
+                        } else {
+                            showNotification('导入的文件没有数据', 'error');
+                        }
+                    } catch (error) {
+                        console.error('导入失败:', error);
+                        showNotification('导入失败，请检查文件格式', 'error');
+                    }
+                    
+                    // 移除文件输入元素
+                    document.body.removeChild(fileInput);
+                };
+                reader.readAsArrayBuffer(file);
+            });
+            
+            // 触发文件选择
+            fileInput.click();
+        }
+        
+        // 显示通知
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            // 添加动画
+            setTimeout(() => notification.classList.add('show'), 10);
+            
+            // 自动关闭
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => document.body.removeChild(notification), 300);
+            }, 3000);
+        }
+        
+        // 简单提示被点名学生
+        function showSelectedStudent(student) {
+            // 创建简单提示
+            const notification = document.createElement('div');
+            notification.className = 'notification info';
+            notification.textContent = `已选中: ${student ? student.name : ''}${student ? ' (得分: ' + student.score + ')' : ''}`;
+            document.body.appendChild(notification);
+            
+            // 显示提示
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+            
+            // 移除提示
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 2000);
+        }
+
+        // 初始化
+        initGroups();
+        updateRankings();
+        
+        // 显示中央得分提示动画
+        function showScorePopup(delta) {
+            const popup = document.getElementById('scorePopup');
+            popup.textContent = delta > 0 ? `+${delta}分` : `${delta}分`;
+            popup.className = 'score-popup';
+            
+            // 重置动画
+            void popup.offsetWidth;
+            
+            // 应用新动画
+            popup.classList.add(delta > 0 ? 'positive' : 'negative');
+            
+            // 播放相应音效
+            if (delta > 0) {
+                document.getElementById('correctSound').play();
+                // 正分时显示庆祝动画
+                if (delta >= 5) {
+                    showCelebrationAnimation('太棒了！');
+                } else {
+                    showFireworkAnimation();
+                }
+            } else {
+                document.getElementById('wrongSound').play();
+            }
+            
+            // 动画结束后清除类名
+            setTimeout(() => {
+                popup.className = 'score-popup';
+            }, 1200);
+        }
+        
+        // 显示烟花动画
+        function showFireworkAnimation() {
+            const container = document.getElementById('fireworkContainer');
+            container.innerHTML = '';
+            
+            // 创建多个烟花
+            for (let i = 0; i < 30; i++) {
+                setTimeout(() => {
+                    const firework = document.createElement('div');
+                    firework.className = 'firework';
+                    
+                    // 随机位置
+                    const startX = 50 + Math.random() * (window.innerWidth - 100);
+                    const startY = 50 + Math.random() * (window.innerHeight - 100);
+                    
+                    firework.style.left = `${startX}px`;
+                    firework.style.top = `${startY}px`;
+                    
+                    // 随机颜色
+                    const colors = ['#ff5599', '#52c41a', '#1890ff', '#faad14', '#722ed1'];
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    firework.style.backgroundColor = color;
+                    firework.style.boxShadow = `0 0 10px 2px ${color}`;
+                    
+                    // 随机方向
+                    const angle = Math.random() * Math.PI * 2;
+                    const distance = 50 + Math.random() * 100;
+                    const x = Math.cos(angle) * distance;
+                    const y = Math.sin(angle) * distance;
+                    firework.style.setProperty('--x', `${x}px`);
+                    firework.style.setProperty('--y', `${y}px`);
+                    
+                    container.appendChild(firework);
+                    
+                    // 动画结束后移除
+                    setTimeout(() => {
+                        container.removeChild(firework);
+                    }, 1000);
+                }, i * 50); // 错开时间
+            }
+        }
+        
+        // 显示庆祝动画
+        function showCelebrationAnimation(text) {
+            const container = document.getElementById('celebrationContainer');
+            container.innerHTML = '';
+            
+            // 创建庆祝文字
+            const celebrationText = document.createElement('div');
+            celebrationText.className = 'celebration-text';
+            celebrationText.textContent = text || '恭喜！';
+            container.appendChild(celebrationText);
+            
+            // 创建彩色纸屑
+            const colors = ['#ff5599', '#52c41a', '#1890ff', '#faad14', '#722ed1', '#eb2f96', '#fa8c16', '#a0d911'];
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                
+                // 随机位置
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.top = `-10px`;
+                
+                // 随机颜色
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.setProperty('--color', color);
+                
+                // 随机大小
+                const size = 5 + Math.random() * 10;
+                confetti.style.width = `${size}px`;
+                confetti.style.height = `${size}px`;
+                
+                // 随机形状
+                if (Math.random() > 0.5) {
+                    confetti.style.borderRadius = '50%';
+                } else {
+                    confetti.style.borderRadius = '0';
+                }
+                
+                // 随机动画延迟
+                confetti.style.animationDelay = `${Math.random() * 2}s`;
+                
+                container.appendChild(confetti);
+                
+                // 动画结束后移除
+                setTimeout(() => {
+                    container.removeChild(confetti);
+                }, 5000);
+            }
+            
+            // 移除庆祝文字（平滑淡出效果）
+            setTimeout(() => {
+                celebrationText.style.transition = 'opacity 0.8s, transform 0.8s';
+                celebrationText.style.opacity = '0';
+                celebrationText.style.transform = 'translateY(-20px)';
+                
+                // 完全消失后再移除DOM元素
+                setTimeout(() => {
+                    container.removeChild(celebrationText);
+                }, 800);
+            }, 2000);
+        }
+
+        // 添加导入按钮
+        const importBtn = document.createElement('button');
+        importBtn.className = 'export-btn';
+        importBtn.style.marginTop = '10px';
+        importBtn.style.background = '#722ed1';
+        importBtn.textContent = '导入班级数据';
+        importBtn.onclick = importData;
+        document.querySelector('.sidebar').appendChild(importBtn);
+
+        // 添加通知样式
+        const style = document.createElement('style');
+        style.textContent = `
+            .notification {
+                position: fixed;
+                top: 20px;
+                right: -300px;
+                width: 280px;
+                padding: 15px;
+                border-radius: 8px;
+                color: white;
+                font-size: 16px;
+                z-index: 1000;
+                transition: right 0.3s;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            }
+            .notification.show {
+                right: 20px;
+            }
+            .notification.success {
+                background: #52c41a;
+            }
+            .notification.error {
+                background: #f5222d;
+            }
+            .notification.info {
+                background: #1890ff;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 新增成长分析功能
+        function showGrowthAnalysis(studentId) {
+            const student = students.find(s => s.id === studentId);
+            const modal = document.getElementById('analysisModal');
+            
+            // 生成统计指标
+            const metricsHtml = `
+                <div class="growth-metric">
+                    <span>本周进步：</span>
+                    <span>${calculateWeeklyGrowth(student)} 分</span>
+                </div>
+                <div class="growth-metric">
+                    <span>学习稳定性：</span>
+                    <span>${calculateConsistency(student)}%</span>
+                </div>
+            `;
+            
+            // 生成时间轴
+            const timelineHtml = student.history.map((record, index) => `
+                <div class="timeline-item">
+                    <div>${new Date(record.date).toLocaleDateString()}</div>
+                    <div>分数变动：${record.scoreChange > 0 ? '+' : ''}${record.scoreChange || 0}</div>
+                </div>
+            `).join('');
+            
+            // 渲染图表
+            renderGrowthChart(student);
+            
+            document.getElementById('growthMetrics').innerHTML = metricsHtml;
+            document.getElementById('growthTimeline').innerHTML = timelineHtml;
+            modal.style.display = 'block';
+        }
+
+        // 关闭分析弹窗
+        function closeAnalysis() {
+            document.getElementById('analysisModal').style.display = 'none';
+        }
+
+        // 成长指标计算函数
+        function calculateWeeklyGrowth(student) {
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+            return student.history
+                .filter(r => new Date(r.date) > oneWeekAgo && r.scoreChange)
+                .reduce((sum, r) => sum + (r.scoreChange || 0), 0);
+        }
+
+        function calculateConsistency(student) {
+            const changes = student.history
+                .filter(r => r.scoreChange)
+                .map(r => Math.abs(r.scoreChange || 0));
+            if (changes.length === 0) return 100;
+            const avg = changes.reduce((a,b) => a+b, 0) / changes.length;
+            return Math.max(0, 100 - Math.round(avg * 20));
+        }
+
+        // 使用Chart.js渲染图表
+        function renderGrowthChart(student) {
+            const ctx = document.createElement('canvas');
+            document.getElementById('growthChart').innerHTML = '';
+            document.getElementById('growthChart').appendChild(ctx);
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: student.history.map(r => 
+                        new Date(r.date).toLocaleDateString()),
+                    datasets: [{
+                        label: '分数变化趋势',
+                        data: student.history.map((r, i) => {
+                            if (i === 0) return r.score || 0;
+                            return r.newScore || student.history[i-1].newScore || 0;
+                        }),
+                        borderColor: '#ff69b4',
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+        
+        // 窗口调整时保持布局
+        window.addEventListener('resize', () => {
+            document.querySelector('.groups-container').style.height = 
+                `${window.innerHeight * 0.5}px`;
+        });
+        
+        // 随机点名时显示选中学生
+        document.querySelector('.random-btn').addEventListener('click', () => {
+            // 在点名结束后显示选中学生
+            setTimeout(() => {
+                if (currentStudent) {
+                    showSelectedStudent(currentStudent);
+                }
+            }, maxRolls * rollSpeed + 500);
+        });
+    </script>
+</body>
+</html>
+    

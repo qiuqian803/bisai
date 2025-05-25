@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>题库管理器</title>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="题库管理器.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>题库管理器</h1>
+            <div class="header-buttons">
+                <button id="backToMain" class="btn btn-secondary" title="返回扭蛋大作战系统">返回主页</button>
+                <button id="saveChanges" class="btn btn-primary" title="保存当前编辑的题目">保存更改</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="difficulty-selector">
+                    <h3>难度选择</h3>
+                    <div class="btn-group">
+                        <button class="btn btn-difficulty active" data-difficulty="easy">简单</button>
+                        <button class="btn btn-difficulty" data-difficulty="medium">中等</button>
+                        <button class="btn btn-difficulty" data-difficulty="hard">困难</button>
+                    </div>
+                </div>
+                <div class="question-list-container">
+                    <h3>题目列表</h3>
+                    <div class="search-box">
+                        <input type="text" id="searchQuestion" placeholder="搜索题目...">
+                    </div>
+                    <div class="question-list" id="questionList">
+                        <!-- 题目列表将通过JS动态生成 -->
+                    </div>
+                    <button id="addNewQuestion" class="btn btn-success">添加新题目</button>
+                </div>
+            </div>
+
+            <div class="editor-container">
+                <div id="questionEditor" class="question-editor">
+                    <div class="editor-header">
+                        <h3>题目编辑</h3>
+                    </div>
+                    <div class="editor-body">
+                        <div class="form-group">
+                            <label for="questionText">题目内容</label>
+                            <textarea id="questionText" rows="3" placeholder="请输入题目内容..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>选项</label>
+                            <div id="optionsContainer">
+                                <div class="option-item">
+                                    <input type="radio" name="correctOption" value="A">
+                                    <span class="option-label">A</span>
+                                    <input type="text" class="option-text" placeholder="选项A内容...">
+                                </div>
+                                <div class="option-item">
+                                    <input type="radio" name="correctOption" value="B">
+                                    <span class="option-label">B</span>
+                                    <input type="text" class="option-text" placeholder="选项B内容...">
+                                </div>
+                                <div class="option-item">
+                                    <input type="radio" name="correctOption" value="C">
+                                    <span class="option-label">C</span>
+                                    <input type="text" class="option-text" placeholder="选项C内容...">
+                                </div>
+                                <div class="option-item">
+                                    <input type="radio" name="correctOption" value="D">
+                                    <span class="option-label">D</span>
+                                    <input type="text" class="option-text" placeholder="选项D内容...">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="explanation">题目解析</label>
+                            <textarea id="explanation" rows="3" placeholder="请输入题目解析..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>多媒体资源</label>
+                            <div class="media-tabs">
+                                <button class="media-tab active" data-tab="image">图片</button>
+                                <button class="media-tab" data-tab="audio">音频</button>
+                                <button class="media-tab" data-tab="video">视频</button>
+                            </div>
+                            
+                            <div class="media-content">
+                                <div class="media-panel active" id="imagePanel">
+                                    <div class="media-preview" id="imagePreview"></div>
+                                    <div class="media-upload">
+                                        <input type="file" id="imageUpload" accept="image/*">
+                                        <button class="btn btn-upload" id="uploadImageBtn">上传图片</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="media-panel" id="audioPanel">
+                                    <div class="media-preview" id="audioPreview"></div>
+                                    <div class="media-upload">
+                                        <input type="file" id="audioUpload" accept="audio/*">
+                                        <button class="btn btn-upload" id="uploadAudioBtn">上传音频</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="media-panel" id="videoPanel">
+                                    <div class="media-preview" id="videoPreview"></div>
+                                    <div class="media-upload">
+                                        <input type="file" id="videoUpload" accept="video/*">
+                                        <button class="btn btn-upload" id="uploadVideoBtn">上传视频</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认对话框 -->
+    <div class="modal" id="confirmModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>确认操作</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p id="confirmMessage">确定要执行此操作吗？</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelAction">取消</button>
+                <button class="btn btn-danger" id="confirmAction">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提示消息 -->
+    <div class="toast" id="toast"></div>
+
+    <!-- 添加保存成功提示框 -->
+    <div class="save-notification" id="saveNotification">
+        <div class="save-icon">✓</div>
+        <div class="save-message">保存成功</div>
+    </div>
+
+    <script src="题库管理器.js"></script>
+</body>
+</html>
